@@ -6,12 +6,15 @@ package com.project.app.Security;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -53,6 +56,29 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 		try {
 			LoginDto login = new ObjectMapper().readValue(request.getInputStream(), LoginDto.class);
 			
+			//Regular Expression   
+	        String regex = "^[A-Za-z0-9+_.-]+@(.+)$";  
+	        //Compile regular expression to get the pattern  
+	        Pattern pattern = Pattern.compile(regex);
+			if (!pattern.matcher(login.getEmail()).matches()) {
+				AuthenticationException ex = new BadCredentialsException("You should respect format Email.");
+				authEntryPointHandler.commence(request, response, ex);
+				return null;
+			}
+			
+			
+			if (login.getEmail().length() < 6 || login.getEmail().length() > 120) {
+				AuthenticationException ex = new BadCredentialsException("Email should be between 7 and 120 characters.");
+				authEntryPointHandler.commence(request, response, ex);
+				return null;
+			}
+			
+			if (login.getPassword().length() < 6 || login.getPassword().length() > 100) {
+				AuthenticationException ex = new BadCredentialsException("Password should be between 7 and 100 characters.");
+				authEntryPointHandler.commence(request, response, ex);
+				return null;
+			}
+			
 			if (!userService.findByEmail(login.getEmail())) {
 				AuthenticationException ex = new BadCredentialsException("Email or password is not correct.");
 				authEntryPointHandler.commence(request, response, ex);
@@ -61,10 +87,9 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 			
 			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(login.getEmail(), login.getPassword());
 			return authenticationManager.authenticate(authentication);
+			
 		} catch (IOException | ServletException e) {
-			
 			throw new RuntimeException(e.getMessage());
-			
 		}
 	}
 	
@@ -82,6 +107,9 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 							.compact();
 		
 		response.setContentType("application/json");
+		response.setCharacterEncoding("UTF-8");
+		response.getWriter().append(ConstSecurity.PREFIX_TOKEN+token);
+		
 		response.addHeader(ConstSecurity.HEADER_TOKEN, ConstSecurity.PREFIX_TOKEN+token);
 		
 	}
