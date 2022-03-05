@@ -56,6 +56,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 			if (!userService.findByEmail(login.getEmail())) {
 				AuthenticationException ex = new BadCredentialsException("Email or password is not correct.");
 				authEntryPointHandler.commence(request, response, ex);
+				return null;
 			}
 			
 			UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(login.getEmail(), login.getPassword());
